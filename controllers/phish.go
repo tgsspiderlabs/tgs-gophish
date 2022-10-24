@@ -81,36 +81,6 @@ func WithContactAddress(addr string) PhishingServerOption {
 	}
 }
 
-// Overwrite net.https Error with a custom one to set our own headers
-// Go's internal Error func returns text/plain so browser's won't render the html
-func customError(w http.ResponseWriter, error string, code int) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("X-Content-Type-Options", "nosniff")
-	w.Header().Set("X-XSS-Protection", "1; mode=block")
-	w.Header().Set("X-Frame-Options", "SAMEORIGIN")
-	w.Header().Set("Content-Security-Policy", "default-src https:")
-	w.Header().Set("Server", "Microsoft-IIS/10.0")
-	w.WriteHeader(code)
-	fmt.Fprintln(w, error)
-}
-
-// Overwrite go's internal not found to allow templating the not found page
-// The templating string is currently not passed in, therefore there is no templating yet
-// If I need it in the future, it's a 5 minute change...
-func customNotFound(w http.ResponseWriter, r *http.Request) {
-	tmpl404, err := template.ParseFiles("templates/404.html")
-	if err != nil {
-		log.Fatal(err)
-	}
-	var b bytes.Buffer
-	err = tmpl404.Execute(&b, "")
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
-	customError(w, b.String(), http.StatusNotFound)
-}
-
 // Start launches the phishing server, listening on the configured address.
 func (ps *PhishingServer) Start() {
 	if ps.config.UseTLS {
